@@ -131,3 +131,4 @@ dmypy.json
 wandb
 mlsh_videos
 agent.pt
+.idea
