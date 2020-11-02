@@ -3,10 +3,9 @@
 1. Install tianshou `git clone https://github.com/thu-ml/tianshou.git`
 Cd to the directory tianshou root directory and delete gym dependency in tianshou setup.py. Then `pip install -e .` 
 2. run `pip install -r requirements.txt`
-3. Add to your `.bash_profile` (replace ... with path to directory):
+3. Add to your `.profile` if you are using Ubuntu (replace ... with path to directory):
     ```
-    export PYTHONPATH=$PYTHONPATH:/.../mlsh-proj/gym;
-    export PYTHONPATH=$PYTHONPATH:/.../mlsh-proj/rl-algs;
+    export PYTHONPATH=$PYTHONPATH:/.../off-policy-mlsh/gym;
     ```
 4. `cd` into `gym` then run `pip install -e .` inside that directory.
 5. `cd` into `test_envs` then run `pip install -e .` inside that directory.
