@@ -22,7 +22,9 @@ def rollout(env, agent, N, T, high_len, gamma, lam, test=False):
     total_action_num = 0
     for _ in range(N):
         # rollout one episode and get sum of reward and action
-        episode_reward_sum, episode_action_sum, episode_num_actions = agent.rollout_episode(env, T, high_len, gamma, lam)
+        flag = not test
+        episode_reward_sum, episode_action_sum, episode_num_actions = agent.rollout_episode(env, T, high_len, gamma,
+                                                                                            lam, train_sub=flag)
         total_reward += episode_reward_sum
         total_action_sum += episode_action_sum
         total_action_num += episode_num_actions
@@ -50,21 +52,21 @@ if __name__ == "__main__":
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
-    parser.add_argument( "-N", default=40, type=int, help="num of episodes for each rollout")
+    parser.add_argument("-N", default=40, type=int, help="num of episodes for each rollout")
     parser.add_argument("-W", default=20, type=int, help="arm up length")
     parser.add_argument("-U", default=40, type=int, help="joint training length")
-    parser.add_argument( "--tasks", default=2000, type=int, help="number of tasks")
+    parser.add_argument("--tasks", default=100, type=int, help="number of tasks")
     parser.add_argument("-K", default=10, type=int, help="number of optimization epochs")
     parser.add_argument("-T", default=300, type=int, help="horizon")
     parser.add_argument("--high_len", default=60, type=int, help="master action length")
-    parser.add_argument( "--bs", default=64, type=int, help="batch size")
+    parser.add_argument("--bs", default=64, type=int, help="batch size")
     parser.add_argument("--llr", default=3e-4, type=float, help="low-level policy learning rate")
-    parser.add_argument( "--hlr", default=1e-2, type=float, help="high-level policy learning rate")
+    parser.add_argument("--hlr", default=1e-2, type=float, help="high-level policy learning rate")
     parser.add_argument("--gamma", default=0.99, type=float, help="decay factor")
     parser.add_argument("--lam", default=0.95, type=float, help="GAE prameter")
     parser.add_argument("--epsilon", default=0.2, type=float, help="clipping parameter")
     parser.add_argument("--c1", default=0.5, type=float, help="critic loss parameter")
-    parser.add_argument("--c2", default=0, type=float, help="entropy loss parameter for high-level policy",)
+    parser.add_argument("--c2", default=0, type=float, help="entropy loss parameter for high-level policy", )
     parser.add_argument("--c2_low", default=0, type=float, help="entropy loss for low level policy")
     parser.add_argument("--record", default=1, type=int, help="num of tasks between each record")
     parser.add_argument("--seed", default=626, type=int, help="random seed")
@@ -72,6 +74,9 @@ if __name__ == "__main__":
     parser.add_argument("--env", default="AntBandits-v1", type=str, help="name of the environment")
     parser.add_argument("-c", action="store_true", help="continue training")
     parser.add_argument("--virdis", action="store_true", help="set virutal display")
+    parser.add_argument("--dueling", action="store_true", help="use Dueling DQN")
+    parser.add_argument("--per", action="store_true", help="use prioritized experience replay")
+    parser.add_argument("--n_step", default=3, type=int, help="number of steps lookahead")
 
     args = parser.parse_args()
 
@@ -111,12 +116,16 @@ if __name__ == "__main__":
             args.llr,
             args.hlr,
             disc=disc,
+            dueling=args.dueling,
+            per=args.per,
+            n_step=args.n_step
         )
 
     # save agent at exit
     atexit.register(save_agent, agent)
 
     # main training loop
+    episode_counter = 0
     for i in range(args.tasks):
         print("Current task num:", i)
         env.reset()
@@ -139,6 +148,7 @@ if __name__ == "__main__":
         # warm up
         for w in range(args.W):
             # rollout for N episodes all memories are stored in agent.memory
+            episode_counter += args.N
             rollout(env, agent, args.N, args.T, args.high_len, args.gamma, args.lam)
             for _ in range(args.K):
                 # update high-level policy only
@@ -160,15 +170,17 @@ if __name__ == "__main__":
         )
         wandb.log(
             {
-                "trained_reward": trained_reward,
-                "trained_action": train_action,
+                "reward after warmup": trained_reward,
+                "action after warmup": train_action,
                 str(env.env.realgoal) + "_trained_reward": trained_reward,
-            }
+            },
+            step=episode_counter
         )
         print("Trained reward:", trained_reward)
 
         # joint update
         for _ in range(args.U):
+            episode_counter += args.N
             rollout(env, agent, args.N, args.T, args.high_len, args.gamma, args.lam)
             for _ in range(args.K):
                 # update both high and low-level policy

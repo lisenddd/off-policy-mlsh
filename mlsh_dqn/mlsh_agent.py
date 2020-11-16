@@ -25,7 +25,10 @@ class MLSHAgent:
         hlr,  # learning rate for high level policy
         disc=True,  # discrete or continous action output
         action_scale=1.0,  # scale action range
-        batch_size=64
+        batch_size=64,
+        dueling=False,
+        per=False,
+        n_step=3
     ):
         self.high = policy.DiscPolicy(input_size, num_low, memory_capacity, hlr)
         self.low = []
@@ -39,7 +42,7 @@ class MLSHAgent:
         for i in range(num_low):
             if disc:
                 self.low.append(
-                    dqn_policy.DQNPolicy(input_size, output_size, llr, batch_size)
+                    dqn_policy.DQNPolicy(input_size, output_size, llr, batch_size, dueling=dueling, per=per, n_step=n_step)
                 )
             else:
                 self.low.append(
@@ -119,7 +122,7 @@ class MLSHAgent:
                 if self.disc:
                     state = np.reshape(state, (1, -1))
                     batch = Batch(obs=state, info={})
-                    low_action = self.low[high_action].act(batch, str(high_action))
+                    low_action = self.low[high_action].act(batch, str(high_action), False)
                 else:
                     low_action, _, _ = self.low[high_action].actor.action(state)
                 state, _, done, _ = env.step(low_action)
@@ -130,7 +133,7 @@ class MLSHAgent:
                     break
         return np.transpose(np.array(video), (0, 3, 1, 2))
 
-    def rollout_episode(self, env, T, high_len, gamma, lam):
+    def rollout_episode(self, env, T, high_len, gamma, lam, train_sub):
         """
         rollout agent but not render agent for T time step on env
         store all the necessary data in memory
@@ -171,7 +174,7 @@ class MLSHAgent:
             action, prob, raw_a = self.high.actor.action(prev_state)
 
             post_state, r, done, roll_len = self.low_rollout(
-                env, prev_state, action, high_len, gamma, low_roll, self.disc
+                env, prev_state, action, high_len, gamma, low_roll, self.disc, train_sub
             )
             probs.append(prob)
             prev_states.append(prev_state)
@@ -254,7 +257,7 @@ class MLSHAgent:
 
         return total_reward, np.sum(list(actions)), len(actions)
 
-    def low_rollout(self, env, init_state, action, high_len, gamma, low_roll, dqn):
+    def low_rollout(self, env, init_state, action, high_len, gamma, low_roll, dqn, train_sub=False):
         """
         rollout high_len time steps using low policy selected by action
         store all the data in low_roll
@@ -314,7 +317,7 @@ class MLSHAgent:
                 prev_state = post_state
                 prev_state = np.reshape(prev_state, (1, -1))
                 batch = Batch(obs=prev_state, info={})
-                action = low_policy.act(batch, str(high_action))
+                action = low_policy.act(batch, str(high_action), train_sub)
 
                 post_state, r, done, _ = env.step(action)
                 post_state = self.rms.filter(post_state)
@@ -325,7 +328,8 @@ class MLSHAgent:
                 low_roll["actions"].append(action)
                 low_roll["rewards"].append(r)
                 low_roll["dones"].append(done)
-                low_policy.store(prev_state, action, r, done, post_state)
+                if train_sub:
+                    low_policy.store(prev_state, action, r, done, post_state)
 
                 total_reward += r
                 rollout_len += 1
