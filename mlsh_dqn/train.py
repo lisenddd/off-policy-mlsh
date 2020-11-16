@@ -11,7 +11,7 @@ import gym
 import mlsh_agent
 
 
-def rollout(env, agent, N, T, high_len, gamma, lam, test=False):
+def rollout(env, agent, N, T, high_len, gamma, lam, test=False, train_sub=False):
     """
     rollout on env for N episodes that last for T time steps
     """
@@ -22,9 +22,8 @@ def rollout(env, agent, N, T, high_len, gamma, lam, test=False):
     total_action_num = 0
     for _ in range(N):
         # rollout one episode and get sum of reward and action
-        flag = not test
         episode_reward_sum, episode_action_sum, episode_num_actions = agent.rollout_episode(env, T, high_len, gamma,
-                                                                                            lam, train_sub=flag)
+                                                                                            lam, train_sub=train_sub)
         total_reward += episode_reward_sum
         total_action_sum += episode_action_sum
         total_action_num += episode_num_actions
@@ -181,7 +180,7 @@ if __name__ == "__main__":
         # joint update
         for _ in range(args.U):
             episode_counter += args.N
-            rollout(env, agent, args.N, args.T, args.high_len, args.gamma, args.lam)
+            rollout(env, agent, args.N, args.T, args.high_len, args.gamma, args.lam, train_sub=True)
             for _ in range(args.K):
                 # update both high and low-level policy
                 agent.joint_optim_epi(

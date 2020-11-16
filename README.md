@@ -23,7 +23,9 @@ Cd to the directory tianshou root directory and delete gym dependency in tiansho
 
 Use DQN for subpolicy, cd into `mlsh_dqn` and run
 ```
-python train.py -W 60 -U 1 -T 50 --env MovementBandits-v0
+python train.py -W 30 -U 60 -T 50 --env MovementBandits-v0
+python train.py -W 30 -U 60 -T 50 --env MovementBandits-v0 --dueling
+python train.py -W 30 -U 60 -T 50 --env MovementBandits-v0 --dueling --per
 ```
 
 Use PPO for subpolicy, cd into `code` and run
