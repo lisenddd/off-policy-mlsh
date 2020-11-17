@@ -52,14 +52,14 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-N", default=40, type=int, help="num of episodes for each rollout")
-    parser.add_argument("-W", default=20, type=int, help="arm up length")
+    parser.add_argument("-W", default=20, type=int, help="warm up length")
     parser.add_argument("-U", default=40, type=int, help="joint training length")
-    parser.add_argument("--tasks", default=100, type=int, help="number of tasks")
+    parser.add_argument("--tasks", default=30, type=int, help="number of tasks")
     parser.add_argument("-K", default=10, type=int, help="number of optimization epochs")
     parser.add_argument("-T", default=300, type=int, help="horizon")
     parser.add_argument("--high_len", default=60, type=int, help="master action length")
     parser.add_argument("--bs", default=64, type=int, help="batch size")
-    parser.add_argument("--llr", default=3e-4, type=float, help="low-level policy learning rate")
+    parser.add_argument("--llr", default=1e-4, type=float, help="low-level policy learning rate")
     parser.add_argument("--hlr", default=1e-2, type=float, help="high-level policy learning rate")
     parser.add_argument("--gamma", default=0.99, type=float, help="decay factor")
     parser.add_argument("--lam", default=0.95, type=float, help="GAE prameter")
@@ -172,8 +172,8 @@ if __name__ == "__main__":
                 "reward after warmup": trained_reward,
                 "action after warmup": train_action,
                 str(env.env.realgoal) + "_trained_reward": trained_reward,
-            },
-            step=episode_counter
+                "episode_count": episode_counter
+            }
         )
         print("Trained reward:", trained_reward)
 
