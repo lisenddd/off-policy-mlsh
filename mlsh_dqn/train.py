@@ -54,7 +54,7 @@ if __name__ == "__main__":
     parser.add_argument("-N", default=40, type=int, help="num of episodes for each rollout")
     parser.add_argument("-W", default=20, type=int, help="warm up length")
     parser.add_argument("-U", default=40, type=int, help="joint training length")
-    parser.add_argument("--tasks", default=30, type=int, help="number of tasks")
+    parser.add_argument("--tasks", default=50, type=int, help="number of tasks")
     parser.add_argument("-K", default=10, type=int, help="number of optimization epochs")
     parser.add_argument("-T", default=300, type=int, help="horizon")
     parser.add_argument("--high_len", default=60, type=int, help="master action length")

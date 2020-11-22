@@ -17,18 +17,18 @@ class DQNPolicy:
             model = Net(1, input_size, output_size, device=self.device, dueling=(1, 1)).to(self.device)
         else:
             model = Net(2, input_size, output_size, device=self.device).to(self.device)
-        self.optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+        self.optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
         self.policy = ts.policy.DQNPolicy(model, self.optimizer, estimation_step=n_step, target_update_freq=400)
 
         if not per:
-            self.memory = ts.data.ReplayBuffer(size=10000)
+            self.memory = ts.data.ReplayBuffer(size=15000)
         else:
-            self.memory = ts.data.PrioritizedReplayBuffer(size=10000, alpha=0.6, beta=0.4)
+            self.memory = ts.data.PrioritizedReplayBuffer(size=15000, alpha=0.6, beta=0.4)
         self.per = per
 
         self.train_steps = 0
         self.start_eps = 0.5
-        self.start_beta = 0.4
+        # self.start_beta = 0.4
         self.policy.set_eps(self.start_eps)
         self.batch_size = batch_size
 
@@ -52,8 +52,8 @@ class DQNPolicy:
 
         wandb.log({"low_" + identifier + "_loss": loss})
         wandb.log({"low_" + identifier + "_eps": self.policy.eps})
-        if self.per:
-            wandb.log({"low_" + identifier + "_beta": self.memory._beta})
+        # if self.per:
+        #     wandb.log({"low_" + identifier + "_beta": self.memory._beta})
 
     def store(self, obs, act, rew, done, obs_next):
         self.memory.add(obs, act, rew, done, obs_next)
@@ -66,15 +66,15 @@ class DQNPolicy:
             self.policy.set_eps(eps)
         else:
             self.policy.set_eps(0.05)
-
-        if self.per:
-            if self.train_steps <= 20000:
-                self.memory._beta = self.start_beta
-            elif self.train_steps <= 100000:
-                beta = self.start_beta + (self.train_steps - 20000) / 80000 * (0.9 * self.start_beta)
-                self.memory._beta = beta
-            else:
-                self.memory._beta = 1
+        #
+        # if self.per:
+        #     if self.train_steps <= 20000:
+        #         self.memory._beta = self.start_beta
+        #     elif self.train_steps <= 100000:
+        #         beta = self.start_beta + (self.train_steps - 20000) / 80000 * (0.9 * self.start_beta)
+        #         self.memory._beta = beta
+        #     else:
+        #         self.memory._beta = 1
 
 
 class DuelingNetwork(nn.Module):
